@@ -1,0 +1,8 @@
+*.pt 
+*.pth 
+*.egg-info/ 
+train_data/ 
+sample_data/ 
+pred_data/ 
+output_images/ 
+*.zip 
