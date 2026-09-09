@@ -43,6 +43,8 @@ def main():
     parser.add_argument("--batches", type=int, default=10, help="Số batch mỗi epoch")
     parser.add_argument("--device", type=str, default="cpu", help="Thiết bị tính toán (cpu hoặc cuda)")
     parser.add_argument("--max_predict_cases", type=int, default=10, help="Số lượng ca dự đoán thử nghiệm (mặc định 10 ca)")
+    parser.add_argument("--case", type=str, default=None, help="Chỉ chạy dự đoán và trực quan hóa cho 1 ca cụ thể (ví dụ: BraTS-MEN-00023-000)")
+    parser.add_argument("--skip_train", action="store_true", help="Bỏ qua bước huấn luyện nếu đã có sẵn file model")
     args = parser.parse_args()
 
     python_exec = sys.executable
@@ -61,22 +63,28 @@ def main():
         print(f"\n>>> [BƯỚC 1] Đã có sẵn {len(existing_pairs)} ca trong '{args.train_dir}', bỏ qua bước tạo nhãn.")
 
     # BƯỚC 2: Huấn luyện mô hình
-    run_command([
-        python_exec, "scripts/train.py",
-        args.train_dir, args.model,
-        "--epochs", str(args.epochs),
-        "--batches_per_epoch", str(args.batches),
-        "--batch_size", "2",
-        "--device", args.device
-    ], "2. Huấn luyện mô hình CNN (scripts/train.py)")
+    if args.skip_train and os.path.exists(args.model):
+        print(f"\n>>> [BƯỚC 2] Bỏ qua huấn luyện, sử dụng mô hình sẵn có: '{args.model}'")
+    else:
+        run_command([
+            python_exec, "scripts/train.py",
+            args.train_dir, args.model,
+            "--epochs", str(args.epochs),
+            "--batches_per_epoch", str(args.batches),
+            "--batch_size", "2",
+            "--device", args.device
+        ], "2. Huấn luyện mô hình CNN (scripts/train.py)")
 
     # BƯỚC 3: Dự đoán các ca và lưu vào pred_data/
     Path(args.pred_dir).mkdir(parents=True, exist_ok=True)
-    case_dirs = [d for d in Path(args.data_dir).iterdir() if d.is_dir()]
-    if args.max_predict_cases:
-        case_dirs = case_dirs[:args.max_predict_cases]
+    if args.case:
+        case_dirs = [d for d in Path(args.data_dir).iterdir() if d.is_dir() and args.case in d.name]
+    else:
+        case_dirs = [d for d in Path(args.data_dir).iterdir() if d.is_dir()]
+        if args.max_predict_cases:
+            case_dirs = case_dirs[:args.max_predict_cases]
 
-    print(f"\n>>> [BƯỚC 3] Dự đoán cho {len(case_dirs)} ca vào '{args.pred_dir}/'...")
+    print(f"\n>>> [BƯỚC 3] Dự đoán bằng mô hình '{args.model}' cho {len(case_dirs)} ca vào '{args.pred_dir}/'...")
     for c in case_dirs:
         mri_files = list(c.glob("*-t1c.nii.gz")) or [f for f in c.glob("*.nii.gz") if not f.name.endswith("-seg.nii.gz")]
         if mri_files:
@@ -87,23 +95,29 @@ def main():
                 in_mri, out_json, args.model,
                 "--device", args.device
             ], capture_output=True)
-            print(f" [+] Đã dự đoán: {c.name} -> {out_json}")
+            print(f" [+] Đã dự đoán thành công: {c.name} -> {out_json}")
 
-    # BƯỚC 4: Trực quan hóa ảnh và đo đạc MLS
-    run_command([
-        python_exec, "scripts/visualize.py",
+    # BƯỚC 4: Trực quan hóa ảnh não, vẽ đường đỏ bám u, đường xanh nối cực và đo đạc độ lệch MLS
+    vis_cmd = [
+        python_exec, "scripts/visualize_midline_shift.py",
         "--pred_dir", args.pred_dir,
         "--data_dir", args.data_dir,
         "--output_dir", args.output_dir
-    ], "4. Trực quan hóa ảnh não và đo độ lệch MLS (scripts/visualize.py)")
+    ]
+    if args.case:
+        specific_json = Path(args.pred_dir) / f"{args.case}.json"
+        if specific_json.exists():
+            vis_cmd.extend(["--json_file", str(specific_json)])
 
-    # BƯỚC 5: Đánh giá Accuracy & Metrics
+    run_command(vis_cmd, "4. Trực quan hóa ảnh não & Đo độ lệch MLS (scripts/visualize_midline_shift.py)")
+
+    # BƯỚC 5: Đánh giá đầy đủ 10 thông số chuẩn số thập phân
     run_command([
         python_exec, "scripts/evaluate_metrics.py",
         "--gt_dir", args.train_dir,
         "--pred_dir", args.pred_dir,
         "--data_dir", args.data_dir
-    ], "5. Đánh giá sai số MAE/RMSE và độ chính xác (scripts/evaluate_metrics.py)")
+    ], "5. Tính toán và hiển thị đầy đủ 10 thông số dạng số thập phân (scripts/evaluate_metrics.py)")
 
     print("\n" + "=" * 60)
     print(" [HOÀN TẤT TOÀN BỘ PIPELINE]")

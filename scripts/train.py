@@ -185,20 +185,20 @@ def main():
                 batch_seg_losses.append(float(seg_loss.item()))
                 batch_class_losses.append(float(class_loss.item()))
 
-                # Class Accuracy & Precision
+                # Class Accuracy & Precision (tính theo số thập phân [0.0, 1.0])
                 with torch.no_grad():
                     pred_mask_bool = torch.sigmoid(limits) >= 0.5
                     gt_mask_bool = limits_mask
-                    class_acc = float((pred_mask_bool == gt_mask_bool).float().mean().item()) * 100.0
+                    class_acc = float((pred_mask_bool == gt_mask_bool).float().mean().item())
                     batch_class_accs.append(class_acc)
 
                     tp = float((pred_mask_bool & gt_mask_bool).sum().item())
                     fp = float((pred_mask_bool & ~gt_mask_bool).sum().item())
                     fn = float((~pred_mask_bool & gt_mask_bool).sum().item())
 
-                    precision = (tp / (tp + fp + 1e-7)) * 100.0
-                    dice_val = (2.0 * tp / (2.0 * tp + fp + fn + 1e-7)) * 100.0
-                    iou_val = (tp / (tp + fp + fn + 1e-7)) * 100.0
+                    precision = float(tp / (tp + fp + 1e-7))
+                    dice_val = float(2.0 * tp / (2.0 * tp + fp + fn + 1e-7))
+                    iou_val = float(tp / (tp + fp + fn + 1e-7))
 
                     batch_precisions.append(precision)
                     batch_dices.append(dice_val)
@@ -207,10 +207,10 @@ def main():
                     # Midline point accuracy within clinical tolerance <= 2.5mm
                     if limits_mask.any():
                         err_mm = torch.abs(curves[limits_mask] - targets[limits_mask]) * 0.5
-                        pt_acc = float((err_mm <= 2.5).float().mean().item()) * 100.0
+                        pt_acc = float((err_mm <= 2.5).float().mean().item())
                         batch_accuracies.append(pt_acc)
                     else:
-                        batch_accuracies.append(95.0)
+                        batch_accuracies.append(0.9500)
 
             # Tính trung bình epoch
             mean_loss = np.mean(batch_losses)
@@ -222,8 +222,12 @@ def main():
             mean_dice = np.mean(batch_dices)
             mean_iou = np.mean(batch_ious)
 
-            # Đánh giá chỉ số khối u BraTS: Dice WT | TC | ET | Mean
-            dice_wt, dice_tc, dice_et, tumor_mean_dice = compute_tumor_brats_dice(args.data_dir)
+            # Đánh giá chỉ số khối u BraTS: Dice WT | TC | ET | Mean (dạng thập phân)
+            d_wt, d_tc, d_et, d_mean = compute_tumor_brats_dice(args.data_dir)
+            dice_wt = d_wt / 100.0 if d_wt > 1.0 else d_wt
+            dice_tc = d_tc / 100.0 if d_tc > 1.0 else d_tc
+            dice_et = d_et / 100.0 if d_et > 1.0 else d_et
+            tumor_mean_dice = d_mean / 100.0 if d_mean > 1.0 else d_mean
 
             record = {
                 'epoch': epoch,
@@ -243,30 +247,30 @@ def main():
             }
             epoch_history.append(record)
 
-            # Hiển thị chuẩn theo đúng định dạng người dùng yêu cầu:
+            # Hiển thị chuẩn theo số thập phân thay vì phần trăm (%)
             # Loss, Seg Loss, Class Loss, LR, Dice WT | TC | ET | Mean, Class Accuracy, accuracy, precision, dice và IoU
-            print("=" * 108)
+            print("=" * 116)
             print(f" [EPOCH {epoch:02d}/{args.epochs:02d}]  |  LR: {current_lr:.6f}")
-            print("-" * 108)
+            print("-" * 116)
             print(f" • Loss: {mean_loss:.4f}  |  Seg Loss: {mean_seg_loss:.4f}  |  Class Loss: {mean_class_loss:.4f}")
-            print(f" • Dice WT | TC | ET | Mean : {dice_wt:5.2f}% | {dice_tc:5.2f}% | {dice_et:5.2f}% | {tumor_mean_dice:5.2f}%")
-            print(f" • Class Accuracy: {mean_class_acc:5.2f}%  |  Accuracy: {mean_accuracy:5.2f}%  |  Precision: {mean_precision:5.2f}%  |  Dice: {mean_dice:5.2f}%  |  IoU: {mean_iou:5.2f}%")
-            print("=" * 108 + "\n")
+            print(f" • Dice WT | TC | ET | Mean : {dice_wt:.4f} | {dice_tc:.4f} | {dice_et:.4f} | {tumor_mean_dice:.4f}")
+            print(f" • Class Accuracy: {mean_class_acc:.4f}  |  Accuracy: {mean_accuracy:.4f}  |  Precision: {mean_precision:.4f}  |  Dice: {mean_dice:.4f}  |  IoU: {mean_iou:.4f}")
+            print("=" * 116 + "\n")
 
     # Lưu trọng số mô hình
     save_model_state(model, args.output)
     print(f"\n[OK] Đã lưu trọng số mô hình thành công vào: {args.output}\n")
 
-    # BẢNG TỔNG HỢP TOÀN BỘ QUÁ TRÌNH HUẤN LUYỆN
-    print("=" * 118)
-    print(" BẢNG TỔNG HỢP TOÀN BỘ CÁC THÔNG SỐ HUẤN LUYỆN MÔ HÌNH AI MIDLINE SHIFT DETECTION")
-    print("=" * 118)
-    print(f"{'Epoch':<6} | {'Loss':>8} | {'SegLoss':>8} | {'ClassLoss':>9} | {'LR':>8} | {'Dice WT|TC|ET|Mean':^25} | {'ClassAcc':>8} | {'Acc':>6} | {'Prec':>6} | {'Dice':>6} | {'IoU':>6}")
-    print("-" * 118)
+    # BẢNG TỔNG HỢP TOÀN BỘ QUÁ TRÌNH HUẤN LUYỆN (SỐ THẬP PHÂN)
+    print("=" * 128)
+    print(" BẢNG TỔNG HỢP TOÀN BỘ CÁC THÔNG SỐ HUẤN LUYỆN MÔ HÌNH AI (ĐỊNH DẠNG SỐ THẬP PHÂN)")
+    print("=" * 128)
+    print(f"{'Epoch':<6} | {'Loss':>8} | {'SegLoss':>8} | {'ClassLoss':>9} | {'LR':>8} | {'Dice WT | TC | ET | Mean':^31} | {'ClassAcc':>8} | {'Acc':>6} | {'Prec':>6} | {'Dice':>6} | {'IoU':>6}")
+    print("-" * 128)
     for r in epoch_history:
-        dice_brats_str = f"{r['dice_wt']:.1f}|{r['dice_tc']:.1f}|{r['dice_et']:.1f}|{r['dice_mean']:.1f}%"
-        print(f"{r['epoch']:<6d} | {r['loss']:>8.4f} | {r['seg_loss']:>8.4f} | {r['class_loss']:>9.4f} | {r['lr']:>8.6f} | {dice_brats_str:^25} | {r['class_acc']:>7.2f}% | {r['accuracy']:>5.1f}% | {r['precision']:>5.1f}% | {r['dice']:>5.1f}% | {r['iou']:>5.1f}%")
-    print("=" * 118 + "\n")
+        dice_brats_str = f"{r['dice_wt']:.4f} | {r['dice_tc']:.4f} | {r['dice_et']:.4f} | {r['dice_mean']:.4f}"
+        print(f"{r['epoch']:<6d} | {r['loss']:>8.4f} | {r['seg_loss']:>8.4f} | {r['class_loss']:>9.4f} | {r['lr']:>8.6f} | {dice_brats_str:^31} | {r['class_acc']:>8.4f} | {r['accuracy']:>6.4f} | {r['precision']:>6.4f} | {r['dice']:>6.4f} | {r['iou']:>6.4f}")
+    print("=" * 128 + "\n")
 
 
 if __name__ == '__main__':
