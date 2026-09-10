@@ -5,7 +5,7 @@ if not hasattr(os, 'sched_getaffinity'):
     os.sched_getaffinity = lambda pid=0: set(range(os.cpu_count() or 1))
 
 from .data import gather_nifty, load_pair, gather_train, normalize_image
-from .model import Network
+from .model import Network, UNet
 from .predict import rescale_nii, crop_background
 from .training import random_flip, get_random_slice, combiner, train_step
 

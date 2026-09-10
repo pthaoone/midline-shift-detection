@@ -26,7 +26,18 @@ STRUCTURE = [
 ]
 
 
-class Network(nn.Module):
+class UNet(nn.Module):
+    """
+    U-Net Architecture for Brain Midline Shift Detection (MSD)
+    ==========================================================
+    Kiến trúc mạng U-Net giải phẫu y tế chuyên dụng:
+    1. Encoder (Đường co rút / Contracting Path): Trích xuất đặc trưng hình ảnh não bộ đa tỷ lệ qua các khối ResBlock2d và MaxPool2d (kích thước giảm 1/2, 1/4, 1/8, 1/16).
+    2. Bottleneck: Lớp đáy sâu nhất biểu diễn ngữ cảnh giải phẫu toàn cục.
+    3. Decoder (Đường mở rộng / Expanding Path): Tái lập độ phân giải không gian ban đầu, tích hợp kết nối tắt (Skip Connections) ghép nối đặc trưng phân giải cao từ Encoder sang Decoder qua hàm merge_branches.
+    4. Dual-Head (Đầu ra đa nhiệm):
+       - Midline Head: Dự đoán bản đồ nhiệt xác suất rãnh giữa kết hợp Spatial Soft-Argmax (Expectation) để xuất tọa độ liên tục sub-pixel.
+       - Limits Head: Dự đoán xác suất nhị phân tại mỗi hàng để xác định cực trước (anterior) và cực sau (posterior).
+    """
     def __init__(self):
         super().__init__()
 
@@ -71,3 +82,7 @@ class Network(nn.Module):
 
         curves = expectation(functional.softmax(masks, -1))
         return torch.cat([curves, limits], 1)
+
+
+# Alias tương thích ngược hoàn toàn
+Network = UNet

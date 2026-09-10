@@ -54,7 +54,7 @@ else:
     files = [[output_path, input_path]]
 
 bar = tqdm(files)
-model = to_device(Network(), args.device)
+model = to_device(UNet(), args.device)
 load_model_state(model, args.model)
 
 for output_file, input_image in bar:

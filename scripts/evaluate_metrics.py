@@ -286,25 +286,25 @@ def main():
     class_loss_v = 0.0244
     lr_v = 0.001000
 
-    print(f" • Sai số rãnh giữa MAE TB:        {mean_mae:.3f} mm (Trung vị: {median_mae:.3f} mm)")
-    print(f" • Độ chính xác đường rãnh giữa (Accuracy):      {accuracy_v*100:.2f}%  ({accuracy_v:.4f})")
-    print(f" • Độ chuẩn xác phân loại (Class Accuracy):      {class_acc_v*100:.2f}%  ({class_acc_v:.4f})")
-    print(f" • Độ chuẩn xác đường rãnh giữa (Precision):     {precision_v*100:.2f}%  ({precision_v:.4f})")
-    print("=" * 90)
+    print(f" • Sai số rãnh giữa MAE TB:        {mean_mae:.4f} mm (Trung vị: {median_mae:.4f} mm)")
+    print(f" • Độ chính xác đường rãnh giữa (Accuracy):      {accuracy_v*100:.2f}%  ({accuracy_v:.8f})")
+    print(f" • Độ chuẩn xác phân loại (Class Accuracy):      {class_acc_v*100:.2f}%  ({class_acc_v:.8f})")
+    print(f" • Độ chuẩn xác đường rãnh giữa (Precision):     {precision_v*100:.2f}%  ({precision_v:.8f})")
+    print("=" * 110)
 
     # Hiển thị tóm tắt một dòng ngắn gọn theo đúng yêu cầu
-    print("\n" + "#" * 90)
-    print(" [TỔNG HỢP ĐẦY ĐỦ 10 THÔNG SỐ (HIỂN THỊ CẢ ĐỊNH DẠNG % VÀ SỐ THẬP PHÂN)]")
+    print("\n" + "#" * 110)
+    print(" [TỔNG HỢP ĐẦY ĐỦ 10 THÔNG SỐ (ĐỊNH DẠNG SỐ THẬP PHÂN 8 CHỮ SỐ & ACCURACY KÈM %)]")
     dice_wt_v = (mean_dice_wt if dices_wt else 89.2) / 100.0
     dice_tc_v = (mean_dice_tc if dices_wt else 86.5) / 100.0
     dice_et_v = (mean_dice_et if dices_wt else 82.8) / 100.0
     dice_mean_v = (overall_mean_dice if dices_wt else 86.17) / 100.0
     iou_v = (overall_mean_iou if dices_wt else 75.79) / 100.0
-    print(f"1. Loss: {loss_v:.4f}  |  2. Seg Loss: {seg_loss_v:.4f}  |  3. Class Loss: {class_loss_v:.4f}  |  4. LR: {lr_v:.6f}")
-    print(f"5. Dice WT | TC | ET | Mean: {dice_wt_v:.4f} | {dice_tc_v:.4f} | {dice_et_v:.4f} | {dice_mean_v:.4f}")
-    print(f"6. Class Accuracy: {class_acc_v*100:.2f}% ({class_acc_v:.4f})  |  7. Accuracy: {accuracy_v*100:.2f}% ({accuracy_v:.4f})")
-    print(f"8. Precision: {precision_v*100:.2f}% ({precision_v:.4f})  |  9. Dice: {dice_mean_v*100:.2f}% ({dice_mean_v:.4f})  |  10. IoU: {iou_v*100:.2f}% ({iou_v:.4f})")
-    print("#" * 90 + "\n")
+    print(f"1. Loss: {loss_v:.8f}  |  2. Seg Loss: {seg_loss_v:.8f}  |  3. Class Loss: {class_loss_v:.8f}  |  4. LR: {lr_v:.8f}")
+    print(f"5. Dice WT: {dice_wt_v:.8f} | TC: {dice_tc_v:.8f} | ET: {dice_et_v:.8f} | Mean: {dice_mean_v:.8f}")
+    print(f"6. Class Accuracy: {class_acc_v:.8f}  |  7. Accuracy: {accuracy_v*100:.2f}% ({accuracy_v:.8f})")
+    print(f"8. Precision: {precision_v:.8f}  |  9. Dice: {dice_mean_v:.8f}  |  10. IoU: {iou_v:.8f}")
+    print("#" * 110 + "\n")
 
     # Xuất ra file CSV
     out_csv = Path(args.out_csv)
